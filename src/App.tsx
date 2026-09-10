@@ -48,8 +48,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans flex flex-col">
-      {/* Top Mobile Status Bar & Navigation Header */}
+    <div className="min-h-screen bg-[#FAF8F5] text-stone-800 font-sans flex flex-col relative overflow-x-hidden selection:bg-amber-100 selection:text-amber-900">
+      {/* Ambient background pastel blobs for organic life */}
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-amber-100/40 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="fixed top-1/3 right-10 w-80 h-80 bg-blue-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="fixed bottom-10 left-10 w-96 h-96 bg-emerald-100/30 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* Top Navigation Header */}
       <Header
         currentPart={currentPart}
         parts={CURRICULUM_PARTS}
@@ -60,16 +65,15 @@ export default function App() {
         onResetProgress={handleResetProgress}
       />
 
-      {/* Main Container (Responsive Full or Phone Frame) */}
-      <main className="flex-1 flex justify-center p-3 sm:p-5 md:p-8">
+      {/* Main Content Area (Spacious 900~1050px Feed / Magazine Layout) */}
+      <main className="flex-1 flex justify-center px-4 py-6 sm:py-10 md:py-12">
         <div
           className={`w-full transition-all duration-300 ${
             isPhoneFrame
-              ? 'max-w-md bg-white rounded-3xl shadow-2xl border-4 border-slate-800 p-4 sm:p-6 overflow-hidden'
-              : 'max-w-4xl'
+              ? 'max-w-md bg-white/95 rounded-[2.5rem] shadow-2xl border-8 border-stone-800 p-5 sm:p-7 overflow-hidden'
+              : 'max-w-5xl'
           }`}
         >
-          {/* Content Switching based on currentPart */}
           {currentPart === 1 && (
             <Part1CitizenIntro
               onComplete={() => handleCompletePart(1)}
@@ -120,24 +124,10 @@ export default function App() {
           )}
 
           {currentPart === 8 && (
-            <Part8CivicReport
-              onResetAll={() => {
-                setCurrentPart(1);
-                setCompletedParts(new Set());
-              }}
-            />
+            <Part8CivicReport onResetAll={handleResetProgress} />
           )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>고등학교 1학년 통합사회2 · 정치 과정과 시민 참여 시뮬레이션</span>
-          <span>© 2026 오늘도 시민입니다 | 내 선택이 사회에 닿는 방법</span>
-        </div>
-      </footer>
     </div>
   );
 }
-

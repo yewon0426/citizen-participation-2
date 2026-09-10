@@ -10,12 +10,14 @@ import {
   AlertTriangle,
   ArrowRight,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
   Award,
   Bell,
   Check,
   Search,
+  BookOpen,
+  HelpCircle,
+  TrendingUp,
+  Bookmark,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -24,29 +26,43 @@ interface Part5Props {
   onNext: () => void;
 }
 
+// 8 Characteristics Stickers for the 3 Worlds + Common Zone
+interface StickerItem {
+  id: string;
+  text: string;
+  correctZone: 'party' | 'civic' | 'interest' | 'common';
+}
+
+const STICKER_POOL: StickerItem[] = [
+  { id: 's1', text: '정치사회화', correctZone: 'common' },
+  { id: 's2', text: '여론 형성 및 결집', correctZone: 'common' },
+  { id: 's3', text: '정책 과정에 영향력 행사', correctZone: 'common' },
+  { id: 's4', text: '국민의 요구 전달', correctZone: 'common' },
+  { id: 's5', text: '후보자 공천', correctZone: 'party' },
+  { id: 's6', text: '정권 획득 (국가 권력 쟁취)', correctZone: 'party' },
+  { id: 's7', text: '사회 전체의 공익 실현', correctZone: 'civic' },
+  { id: 's8', text: '구성원의 특수 이익 실현', correctZone: 'interest' },
+];
+
 export const Part5CompareOrganizations: React.FC<Part5Props> = ({
   onComplete,
   onNext,
 }) => {
-  // Step 1: Issue Matching
-  const [issueMatches, setIssueMatches] = useState<Record<string, OrgType | null>>({
-    party: null,
-    civic: null,
-    interest: null,
-  });
+  // Common Zone Interactive Sorter
+  const [placedStickers, setPlacedStickers] = useState<
+    Record<string, 'party' | 'civic' | 'interest' | 'common'>
+  >({});
+  const [selectedSticker, setSelectedSticker] = useState<StickerItem | null>(null);
+  const [isClassificationDone, setIsClassificationDone] = useState(false);
 
-  // Step 2: Common Ground Checks
-  const [commonChecks, setCommonChecks] = useState<Record<string, boolean>>({});
-  const [commonSubmitted, setCommonSubmitted] = useState(false);
+  // Notes view mode (Only revealed upon "SAVE TO NOTES")
+  const [showNotesTable, setShowNotesTable] = useState(false);
 
-  // Step 4: Table View Mode
-  const [showCompleteTable, setShowCompleteTable] = useState(false);
-
-  // Step 5: Exam Trap Answers
+  // Exam Trap state
   const [trapAnswers, setTrapAnswers] = useState<Record<string, string>>({});
   const [trapSubmitted, setTrapSubmitted] = useState<Record<string, boolean>>({});
 
-  // Step 6: Final Mystery Cases
+  // Mystery Cases State
   const [currentCaseIdx, setCurrentCaseIdx] = useState(0);
   const [caseAnswers, setCaseAnswers] = useState<
     Record<
@@ -59,23 +75,26 @@ export const Part5CompareOrganizations: React.FC<Part5Props> = ({
     >
   >({});
 
-  // Helper for issue match
-  const handleAssignIssue = (slot: string, org: OrgType) => {
-    setIssueMatches((prev) => ({ ...prev, [slot]: org }));
+  // Handle placing sticker into zone
+  const handlePlaceStickerInZone = (zone: 'party' | 'civic' | 'interest' | 'common') => {
+    if (!selectedSticker) return;
+
+    if (selectedSticker.correctZone === zone) {
+      const updated = { ...placedStickers, [selectedSticker.id]: zone };
+      setPlacedStickers(updated);
+      setSelectedSticker(null);
+      confetti({ particleCount: 25, spread: 45 });
+
+      if (Object.keys(updated).length === STICKER_POOL.length) {
+        setIsClassificationDone(true);
+        confetti({ particleCount: 60, spread: 75 });
+      }
+    } else {
+      alert(`‘${selectedSticker.text}’ 스티커는 이 영역의 고유 특성이 아닙니다. 다른 영역을 선택해 보세요!`);
+    }
   };
 
-  const isIssueMatchedCorrectly =
-    issueMatches.party === 'party' &&
-    issueMatches.civic === 'civic' &&
-    issueMatches.interest === 'interest';
-
-  // Common Ground Submit
-  const handleCommonSubmit = () => {
-    setCommonSubmitted(true);
-    confetti({ particleCount: 40, spread: 60 });
-  };
-
-  // Trap Answer
+  // Exam Trap Answer Handler
   const handleAnswerTrap = (qId: string, optId: string) => {
     setTrapAnswers((prev) => ({ ...prev, [qId]: optId }));
     setTrapSubmitted((prev) => ({ ...prev, [qId]: true }));
@@ -98,10 +117,7 @@ export const Part5CompareOrganizations: React.FC<Part5Props> = ({
 
     setCaseAnswers((prev) => ({
       ...prev,
-      [currentCase.id]: {
-        ...caseState,
-        selectedClues: updated,
-      },
+      [currentCase.id]: { ...caseState, selectedClues: updated },
     }));
   };
 
@@ -109,730 +125,527 @@ export const Part5CompareOrganizations: React.FC<Part5Props> = ({
     if (caseState.isSubmitted) return;
     setCaseAnswers((prev) => ({
       ...prev,
-      [currentCase.id]: {
-        ...caseState,
-        selectedOrg: org,
-      },
+      [currentCase.id]: { ...caseState, selectedOrg: org },
     }));
   };
 
-  const submitCaseAnswer = () => {
-    if (!caseState.selectedOrg || caseState.selectedClues.length === 0) return;
+  const submitCase = () => {
+    if (!caseState.selectedOrg) return;
     setCaseAnswers((prev) => ({
       ...prev,
-      [currentCase.id]: {
-        ...caseState,
-        isSubmitted: true,
-      },
+      [currentCase.id]: { ...caseState, isSubmitted: true },
     }));
-
-    if (caseState.selectedOrg === currentCase.correctType) {
-      confetti({ particleCount: 40, spread: 50 });
-    }
-
-    // If last case completed
-    if (currentCaseIdx === MYSTERY_CASES.length - 1) {
-      onComplete();
-    }
+    confetti({ particleCount: 30, spread: 50 });
   };
 
   return (
-    <div className="space-y-7 pb-8">
+    <div className="space-y-16 pb-16">
       {/* ============================================================ */}
-      {/* 1. TODAY'S ISSUE (실시간 이슈 시뮬레이션)                     */}
+      {/* 1. THREE WORLDS COLLIDE: COMMON ZONE INTERACTION              */}
       {/* ============================================================ */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between text-xs font-mono text-slate-500 mb-2">
-          <span className="px-3 py-1 rounded-full bg-slate-100 font-extrabold text-slate-700 flex items-center gap-1.5">
-            <Bell className="w-3.5 h-3.5 text-blue-600" />
-            <span>03:40 PM · 긴급 정책 뉴스 알림</span>
+      <section className="space-y-8">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="text-[11px] font-mono tracking-widest text-stone-600 uppercase font-semibold">
+            WHERE THREE WORLDS MEET
           </span>
-          <span className="text-blue-600 font-black tracking-wider">TODAY'S ISSUE</span>
-        </div>
-
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">
-          “일회용 플라스틱 사용을 대폭 줄이는 법안이 논의되고 있습니다.”
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          스마트폰에 세 조직으로부터 거의 동시에 알림이 팝업되었습니다!
-        </p>
-
-        {/* 3 Mobile Notification Cards */}
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Party alert */}
-          <div className="p-4 rounded-3xl bg-blue-50/70 border border-blue-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold text-blue-800 bg-blue-100/80 px-2.5 py-0.5 rounded-full">
-                  🟦 정당 (A당 대변인실)
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">방금 전</span>
-              </div>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                “환경 보호와 친환경 산업 육성을 아우르는 플라스틱 감축 정책을 우리 당의 대표 공약으로 총선에서 국민의 선택을 받겠습니다.”
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-blue-200/80 text-[11px] font-black text-blue-900">
-              목적: 선거 지지 → 정권 획득 및 정책 실현
-            </div>
-          </div>
-
-          {/* Civic alert */}
-          <div className="p-4 rounded-3xl bg-emerald-50/70 border border-emerald-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full">
-                  🟩 환경 시민단체
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">1분 전</span>
-              </div>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                “플라스틱 오염으로부터 바다 생태계를 지키기 위해 시민 10만 서명 캠페인을 전개하고 정부에 강력한 규제 법안 통과를 촉구합니다.”
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-emerald-200/80 text-[11px] font-black text-emerald-900">
-              목적: 사회 전체의 공익(환경보호) 실현
-            </div>
-          </div>
-
-          {/* Interest alert */}
-          <div className="p-4 rounded-3xl bg-amber-50/70 border border-amber-200 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full">
-                  🟧 제조업·소상공인 협회
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">2분 전</span>
-              </div>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                “대책 없는 규제는 제조업과 자영업자의 생존권을 위협합니다! 규제 시행 시기 유예와 지원금 지급을 강력히 요구합니다.”
-              </p>
-            </div>
-            <div className="mt-3 pt-2.5 border-t border-amber-200/80 text-[11px] font-black text-amber-900">
-              목적: 구성원의 특수한 권익 실현
-            </div>
-          </div>
-        </div>
-
-        {/* Interactive Match Drill */}
-        <div className="mt-5 p-5 rounded-3xl bg-slate-50 border border-slate-200">
-          <h3 className="text-sm sm:text-base font-black text-slate-900 mb-1">
-            셋 다 같은 법안에 영향을 미치는데, 왜 서로 다른 조직일까요?
-          </h3>
-          <p className="text-xs text-slate-500 mb-4">
-            각 조직의 핵심 목적에 알맞은 집단을 클릭하여 매칭하세요:
+          <h2 className="text-3xl sm:text-4xl font-black text-stone-900 tracking-tight">
+            세 세계가 만나는 곳
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+            정당, 시민단체, 이익집단은 서로 다른 목적을 가졌지만 때로는 <strong>놀랍도록 닮은 기능</strong>을 공유합니다.
+            아래 스티커를 탭한 후, 알맞은 영역(정당 / 시민단체 / 이익집단 / COMMON ZONE)으로 분류하세요:
           </p>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Slot 1: Power & Policy */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs">
-              <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">목적 A</div>
-                <div className="text-xs font-black text-slate-900">
-                  정권 획득 + 정책 실현
-                </div>
+        {/* Sticker Tray (Unplaced stickers) */}
+        <div className="bg-white/80 backdrop-blur-sm p-5 rounded-3xl border border-stone-200/80 shadow-xs max-w-3xl mx-auto">
+          <div className="flex items-center justify-between text-xs font-mono font-bold text-stone-500 mb-3">
+            <span>스티커 보관함 (분류할 항목을 먼저 탭하세요)</span>
+            <span>
+              남은 항목: {STICKER_POOL.length - Object.keys(placedStickers).length} / {STICKER_POOL.length}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2 justify-center">
+            {STICKER_POOL.map((stk) => {
+              const isPlaced = !!placedStickers[stk.id];
+              const isSelected = selectedSticker?.id === stk.id;
+
+              if (isPlaced) return null;
+
+              return (
+                <button
+                  key={stk.id}
+                  onClick={() => setSelectedSticker(stk)}
+                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-extrabold transition-all duration-200 ${
+                    isSelected
+                      ? 'bg-stone-900 text-white shadow-lg scale-105 ring-4 ring-stone-300'
+                      : 'bg-stone-100 hover:bg-stone-200 text-stone-800'
+                  }`}
+                >
+                  {stk.text}
+                </button>
+              );
+            })}
+
+            {Object.keys(placedStickers).length === STICKER_POOL.length && (
+              <div className="text-xs font-bold text-emerald-700 py-1 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" />
+                모든 특성 스티커가 올바른 영역에 배치되었습니다!
               </div>
-              <div className="mt-3 flex gap-1">
-                {(['party', 'civic', 'interest'] as OrgType[]).map((org) => (
-                  <button
-                    key={org}
-                    onClick={() => handleAssignIssue('party', org)}
-                    className={`flex-1 py-1.5 rounded-xl text-xs font-extrabold border transition ${
-                      issueMatches.party === org
-                        ? org === 'party'
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-rose-100 text-rose-800 border-rose-300'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-transparent'
-                    }`}
-                  >
-                    {org === 'party' ? '정당' : org === 'civic' ? '시민' : '이익'}
-                  </button>
-                ))}
+            )}
+          </div>
+        </div>
+
+        {/* The 3 Circles Layout + Centered COMMON ZONE */}
+        <div className="relative max-w-4xl mx-auto py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+            {/* 1. Left: PARTY ZONE */}
+            <div
+              onClick={() => handlePlaceStickerInZone('party')}
+              className={`p-6 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between min-h-[220px] ${
+                selectedSticker
+                  ? 'border-blue-400 bg-blue-50/50 hover:bg-blue-100/60 ring-2 ring-blue-300'
+                  : 'border-blue-200 bg-white/70 shadow-sm'
+              }`}
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🗳️</span>
+                  <h3 className="font-black text-blue-900 text-base">PARTY (정당 고유 영역)</h3>
+                </div>
+                <p className="text-[11px] text-stone-700">오직 정당만이 수행하는 유일무이한 특성</p>
+              </div>
+
+              <div className="space-y-1.5 mt-4">
+                {Object.entries(placedStickers)
+                  .filter(([_, z]) => z === 'party')
+                  .map(([id]) => {
+                    const item = STICKER_POOL.find((s) => s.id === id);
+                    return (
+                      <div
+                        key={id}
+                        className="px-3 py-1.5 rounded-full bg-blue-600 text-white text-xs font-bold shadow-2xs text-center animate-fadeIn"
+                      >
+                        ✓ {item?.text}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
-            {/* Slot 2: Public Interest */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs">
+            {/* 2. Middle: CIVIC ZONE */}
+            <div
+              onClick={() => handlePlaceStickerInZone('civic')}
+              className={`p-6 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between min-h-[220px] ${
+                selectedSticker
+                  ? 'border-emerald-400 bg-emerald-50/50 hover:bg-emerald-100/60 ring-2 ring-emerald-300'
+                  : 'border-emerald-200 bg-white/70 shadow-sm'
+              }`}
+            >
               <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">목적 B</div>
-                <div className="text-xs font-black text-slate-900">
-                  사회 전체의 공익 실현
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">🌱</span>
+                  <h3 className="font-black text-emerald-900 text-base">CIVIC (시민단체 고유 영역)</h3>
                 </div>
+                <p className="text-[11px] text-stone-700">사회 전체를 위한 비영리 공익 추구</p>
               </div>
-              <div className="mt-3 flex gap-1">
-                {(['party', 'civic', 'interest'] as OrgType[]).map((org) => (
-                  <button
-                    key={org}
-                    onClick={() => handleAssignIssue('civic', org)}
-                    className={`flex-1 py-1.5 rounded-xl text-xs font-extrabold border transition ${
-                      issueMatches.civic === org
-                        ? org === 'civic'
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-rose-100 text-rose-800 border-rose-300'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-transparent'
-                    }`}
-                  >
-                    {org === 'party' ? '정당' : org === 'civic' ? '시민' : '이익'}
-                  </button>
-                ))}
+
+              <div className="space-y-1.5 mt-4">
+                {Object.entries(placedStickers)
+                  .filter(([_, z]) => z === 'civic')
+                  .map(([id]) => {
+                    const item = STICKER_POOL.find((s) => s.id === id);
+                    return (
+                      <div
+                        key={id}
+                        className="px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-2xs text-center animate-fadeIn"
+                      >
+                        ✓ {item?.text}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
 
-            {/* Slot 3: Special Interest */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-2xs">
+            {/* 3. Right: INTEREST ZONE */}
+            <div
+              onClick={() => handlePlaceStickerInZone('interest')}
+              className={`p-6 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between min-h-[220px] ${
+                selectedSticker
+                  ? 'border-amber-400 bg-amber-50/50 hover:bg-amber-100/60 ring-2 ring-amber-300'
+                  : 'border-amber-200 bg-white/70 shadow-sm'
+              }`}
+            >
               <div>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">목적 C</div>
-                <div className="text-xs font-black text-slate-900">
-                  구성원의 특수한 이익 실현
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">💼</span>
+                  <h3 className="font-black text-amber-900 text-base">INTEREST (이익집단 고유 영역)</h3>
                 </div>
+                <p className="text-[11px] text-stone-700">자기 집단 구성원만의 특수한 권익 대변</p>
               </div>
-              <div className="mt-3 flex gap-1">
-                {(['party', 'civic', 'interest'] as OrgType[]).map((org) => (
-                  <button
-                    key={org}
-                    onClick={() => handleAssignIssue('interest', org)}
-                    className={`flex-1 py-1.5 rounded-xl text-xs font-extrabold border transition ${
-                      issueMatches.interest === org
-                        ? org === 'interest'
-                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                          : 'bg-rose-100 text-rose-800 border-rose-300'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-transparent'
-                    }`}
-                  >
-                    {org === 'party' ? '정당' : org === 'civic' ? '시민' : '이익'}
-                  </button>
-                ))}
+
+              <div className="space-y-1.5 mt-4">
+                {Object.entries(placedStickers)
+                  .filter(([_, z]) => z === 'interest')
+                  .map(([id]) => {
+                    const item = STICKER_POOL.find((s) => s.id === id);
+                    return (
+                      <div
+                        key={id}
+                        className="px-3 py-1.5 rounded-full bg-amber-600 text-white text-xs font-bold shadow-2xs text-center animate-fadeIn"
+                      >
+                        ✓ {item?.text}
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>
 
-          {isIssueMatchedCorrectly && (
-            <div className="mt-4 p-3.5 rounded-2xl bg-emerald-100 text-xs font-extrabold text-emerald-950 flex items-center gap-2 animate-fadeIn">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-              <span>정확합니다! 세 조직은 같은 정책 현안이라도 설립 근거와 궁극적 목적이 완전히 다릅니다.</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 2. 세 집단의 공통점 찾기 (COMMON ZONE)                      */}
-      {/* ============================================================ */}
-      <div className="rounded-3xl border-2 border-indigo-500 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-black tracking-wider flex items-center gap-1 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>COMMON ZONE ⭐</span>
-          </span>
-          <h3 className="text-base sm:text-lg font-black text-slate-900">
-            정당 · 시민단체 · 이익집단의 공통점 스티커 찾기
-          </h3>
-        </div>
-        <p className="text-xs text-slate-500 mb-4">
-          세 집단 모두에 공통적으로 나타날 수 있는 특징을 모두 탭하여 선택하세요:
-        </p>
-
-        <div className="space-y-2">
-          {COMMON_GROUND_OPTIONS.map((opt) => {
-            const isChecked = !!commonChecks[opt.id];
-            return (
-              <label
-                key={opt.id}
-                onClick={() => {
-                  if (commonSubmitted) return;
-                  setCommonChecks((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }));
-                }}
-                className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${
-                  isChecked
-                    ? 'border-indigo-500 bg-indigo-50/70 text-indigo-950 font-bold shadow-2xs'
-                    : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => {}}
-                  className="w-4 h-4 rounded text-indigo-600"
-                />
-                <span className="text-xs sm:text-sm">{opt.text}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <button
-            onClick={handleCommonSubmit}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/20 transition"
+          {/* Central Big Circle: COMMON ZONE ⭐ */}
+          <div
+            onClick={() => handlePlaceStickerInZone('common')}
+            className={`mt-6 p-7 rounded-3xl border-2 transition-all cursor-pointer text-center ${
+              selectedSticker
+                ? 'border-purple-500 bg-purple-50 hover:bg-purple-100/70 ring-4 ring-purple-200 shadow-md'
+                : 'border-purple-300 bg-gradient-to-r from-blue-50/50 via-purple-50/60 to-amber-50/50 shadow-sm'
+            }`}
           >
-            공통점 채점 및 배지 확인하기
-          </button>
-
-          {commonSubmitted && (
-            <div className="text-xs font-extrabold text-indigo-900 bg-indigo-100 px-3.5 py-2 rounded-xl">
-              앞의 6개 항목이 공통점이며, 뒤의 3개(후보자 공천, 정권 획득, 공익만 추구)는 공통점이 아닙니다!
+            <div className="max-w-md mx-auto space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-900 text-xs font-black">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <span>COMMON ZONE (세 조직 모두의 공통점)</span>
+              </div>
+              <h4 className="text-lg font-black text-stone-900">
+                “셋 다 하는 일이지만, 시험에서 가장 많이 낚이는 핵심!”
+              </h4>
+              <p className="text-[11px] text-stone-700">
+                정치사회화, 여론 형성, 정책 영향, 요구 전달은 셋 모두가 수행합니다!
+              </p>
             </div>
-          )}
+
+            {/* Placed Common Stickers */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+              {Object.entries(placedStickers)
+                .filter(([_, z]) => z === 'common')
+                .map(([id]) => {
+                  const item = STICKER_POOL.find((s) => s.id === id);
+                  return (
+                    <span
+                      key={id}
+                      className="px-3.5 py-1.5 rounded-full bg-purple-600 text-white text-xs font-black shadow-xs animate-fadeIn"
+                    >
+                      ⭐ {item?.text}
+                    </span>
+                  );
+                })}
+            </div>
+          </div>
         </div>
 
-        {/* Revealed Common Points Badges */}
-        {commonSubmitted && (
-          <div className="mt-5 p-5 rounded-3xl bg-indigo-50/60 border border-indigo-200 animate-fadeIn">
-            <h4 className="text-xs font-black text-indigo-900 mb-3 flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-indigo-600" />
-              <span>[세 집단의 6대 공통점 배지 컬렉션]</span>
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                👥 집단적 정치 참여의 통로
-              </div>
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                📣 요구와 이익의 표출
-              </div>
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                💬 여론 형성에 영향
-              </div>
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                🧠 구성원·시민의 정치사회화
-              </div>
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                🏛 정책 결정 과정에 영향
-              </div>
-              <div className="p-3 bg-white rounded-2xl border border-indigo-100 font-extrabold text-slate-800 shadow-2xs">
-                🌉 시민과 정치 과정의 연결
-              </div>
+        {/* Big Reveal after classification: "같은 기능도 있지만 목적은 다릅니다." */}
+        {isClassificationDone && (
+          <div className="text-center py-6 space-y-3 animate-fadeIn">
+            <h3 className="text-2xl sm:text-3xl font-black text-stone-900 tracking-tight">
+              “같은 기능도 있지만,<br />
+              <span className="text-purple-600">목적은 완전히 다릅니다.</span>”
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-700 max-w-lg mx-auto leading-relaxed">
+              정당은 <strong>정권 획득</strong>, 시민단체는 <strong>공익 실현</strong>, 이익집단은 <strong>특수 이익</strong>을 위해
+              여론을 모으고 정책에 영향력을 행사합니다.
+            </p>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setShowNotesTable(!showNotesTable)}
+                className="px-6 py-3 rounded-full bg-stone-900 hover:bg-stone-800 text-white text-xs sm:text-sm font-black transition flex items-center gap-2 mx-auto shadow-md"
+              >
+                <Bookmark className="w-4 h-4" />
+                <span>{showNotesTable ? '정리 노트 접기' : 'SAVE TO NOTES: 한눈에 비교표 열기'}</span>
+              </button>
             </div>
           </div>
         )}
-      </div>
+
+        {/* 2. THE NOTES TABLE (Revealed only on demand) */}
+        {showNotesTable && (
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200/80 shadow-md max-w-4xl mx-auto space-y-5 animate-fadeIn">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                <h4 className="text-base sm:text-lg font-black text-stone-900">
+                  MY CIVIC NOTE: 3대 집단 완벽 비교표
+                </h4>
+              </div>
+              <span className="text-xs font-mono text-stone-600 font-bold">EXAM SUMMARY</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                <thead>
+                  <tr className="bg-stone-100/80 text-stone-800">
+                    <th className="p-3 font-bold border-b border-stone-200">구분</th>
+                    <th className="p-3 font-black text-blue-700 border-b border-stone-200">🔵 정당</th>
+                    <th className="p-3 font-black text-emerald-700 border-b border-stone-200">🟩 시민단체</th>
+                    <th className="p-3 font-black text-amber-700 border-b border-stone-200">🟧 이익집단</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 text-stone-700">
+                  <tr>
+                    <td className="p-3 font-bold bg-stone-50/50">설립 목적</td>
+                    <td className="p-3 font-semibold text-blue-900">정권 획득 (선거 승리)</td>
+                    <td className="p-3 font-semibold text-emerald-900">사회 전체의 공익 실현</td>
+                    <td className="p-3 font-semibold text-amber-900">구성원만의 특수 이익</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-bold bg-stone-50/50">후보자 공천</td>
+                    <td className="p-3 font-bold text-blue-600">독점적 공천 (O)</td>
+                    <td className="p-3 text-stone-600">공천권 없음 (X)</td>
+                    <td className="p-3 text-stone-600">공천권 없음 (X)</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-bold bg-stone-50/50">정치적 책임</td>
+                    <td className="p-3 font-bold text-blue-900">선거를 통해 직접적 책임</td>
+                    <td className="p-3 text-stone-600">직접적 선거 책임 없음</td>
+                    <td className="p-3 text-stone-600">직접적 선거 책임 없음</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-bold bg-stone-50/50">공통 기능</td>
+                    <td colSpan={3} className="p-3 bg-purple-50/60 font-semibold text-purple-950">
+                      ⭐ <strong>모두 수행:</strong> 여론 형성, 정치사회화, 정책 결정 과정에 압력/영향 행사, 국민 요구 집약 및 전달
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* ============================================================ */}
-      {/* 3. 정치사회화 ZOOM IN                                         */}
+      {/* 3. EXAM TRAP QUESTIONS: 7대 출제 함정 피드                    */}
       {/* ============================================================ */}
-      <div className="rounded-3xl border border-purple-300 bg-purple-50/50 p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white text-xs font-black">
-            ZOOM IN
+      <section className="space-y-6 max-w-3xl mx-auto">
+        <div className="text-center space-y-1">
+          <span className="text-[11px] font-mono tracking-widest text-stone-600 uppercase font-semibold">
+            EXAM TRAP RADAR
           </span>
-          <h3 className="text-base sm:text-lg font-black text-slate-900">
-            정치사회화, 세 조직에서 어떻게 나타날까?
+          <h3 className="text-2xl font-black text-stone-900 tracking-tight">
+            시험에 100% 나오는 7대 함정 퀴즈
           </h3>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-          <div className="p-4 rounded-2xl bg-white border border-purple-200">
-            <span className="text-xs font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-              🟦 정당
-            </span>
-            <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-              정책·공약 설명회, 선거 유세, 당원 아카데미 등을 통해 시민이 정치적 쟁점과 참여 방법을 학습하도록 지원
-            </p>
-          </div>
-          <div className="p-4 rounded-2xl bg-white border border-purple-200">
-            <span className="text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              🟩 시민단체
-            </span>
-            <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-              공익 캠페인, 시민 교육, 청원 및 서명 운동 참여를 통해 사회문제에 대한 비판적 의식과 참여 경험을 체득
-            </p>
-          </div>
-          <div className="p-4 rounded-2xl bg-white border border-purple-200">
-            <span className="text-xs font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              🟧 이익집단
-            </span>
-            <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-              회원 대상 법령 설명회, 업계 정책 포럼 및 총회를 통해 회원들이 법과 정책에 관심을 갖고 참여 역량을 기르도록 함
-            </p>
-          </div>
-        </div>
-
-        {/* Highlight Alert Banner */}
-        <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-purple-800 to-indigo-900 text-white text-center shadow-md">
-          <h4 className="text-sm sm:text-base font-black">
-            “정치사회화는 정당만의 고유한 기능이 아닙니다!”
-          </h4>
-          <p className="text-xs text-purple-200 mt-1 max-w-xl mx-auto">
-            정당의 중요한 역할 중 하나이지만, <strong>시민단체와 이익집단도 각자의 방식으로 정치사회화 기능을 수행</strong>할 수 있음을 꼭 기억하세요!
+          <p className="text-xs text-stone-700">
+            교과서나 모의고사에서 자주 출제되는 헷갈리는 문항을 풀어보세요:
           </p>
         </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 4. 공통점과 차이점 최종 비교 (TABLE)                         */}
-      {/* ============================================================ */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-slate-900">
-              세 조직 공통점과 차이점 완벽 비교표
-            </h3>
-            <p className="text-xs text-slate-500">
-              수능·내신에 단골 출제되는 핵심 비교 기준 정리
-            </p>
-          </div>
-
-          <button
-            onClick={() => setShowCompleteTable(!showCompleteTable)}
-            className="px-3.5 py-1.5 rounded-full border text-xs font-extrabold text-blue-600 bg-blue-50 hover:bg-blue-100 flex items-center gap-1 transition"
-          >
-            <span>{showCompleteTable ? '표 접기' : '완성된 비교표 전체 보기'}</span>
-            {showCompleteTable ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {/* Comparison Table */}
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-slate-100 border-b border-slate-200 text-slate-700">
-                <th className="p-3.5 font-black">비교 기준</th>
-                <th className="p-3.5 font-black text-blue-800">🟦 정당</th>
-                <th className="p-3.5 font-black text-emerald-800">🟩 시민단체</th>
-                <th className="p-3.5 font-black text-amber-800">🟧 이익집단</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">집단적 시민 참여</td>
-                <td className="p-3.5 font-extrabold text-blue-600">O</td>
-                <td className="p-3.5 font-extrabold text-emerald-600">O</td>
-                <td className="p-3.5 font-extrabold text-amber-600">O</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">정치사회화 기능</td>
-                <td className="p-3.5 font-extrabold text-blue-600">O</td>
-                <td className="p-3.5 font-extrabold text-emerald-600">O</td>
-                <td className="p-3.5 font-extrabold text-amber-600">O</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">여론 형성 영향</td>
-                <td className="p-3.5 font-extrabold text-blue-600">O</td>
-                <td className="p-3.5 font-extrabold text-emerald-600">O</td>
-                <td className="p-3.5 font-extrabold text-amber-600">O</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">정책 결정에 영향</td>
-                <td className="p-3.5 font-extrabold text-blue-600">O</td>
-                <td className="p-3.5 font-extrabold text-emerald-600">O</td>
-                <td className="p-3.5 font-extrabold text-amber-600">O</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">요구·이익의 정치과정 전달</td>
-                <td className="p-3.5 font-extrabold text-blue-600">O</td>
-                <td className="p-3.5 font-extrabold text-emerald-600">O</td>
-                <td className="p-3.5 font-extrabold text-amber-600">O</td>
-              </tr>
-              <tr className="bg-blue-50/40 hover:bg-blue-50/60">
-                <td className="p-3.5 font-black text-slate-900">핵심 목적 (결정적 차이)</td>
-                <td className="p-3.5 font-black text-blue-700">정권 획득 + 정책 실현</td>
-                <td className="p-3.5 font-black text-emerald-700">공익 실현</td>
-                <td className="p-3.5 font-black text-amber-700">구성원의 특수 이익 실현</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">공직 선거 후보자 공천</td>
-                <td className="p-3.5 font-black text-blue-600">O (유일)</td>
-                <td className="p-3.5 font-bold text-slate-400">X</td>
-                <td className="p-3.5 font-bold text-slate-400">X</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">정권 획득 추구</td>
-                <td className="p-3.5 font-black text-blue-600">O (유일)</td>
-                <td className="p-3.5 font-bold text-slate-400">X</td>
-                <td className="p-3.5 font-bold text-slate-400">X</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">공익성 추구</td>
-                <td className="p-3.5">지지 확보 위해 공익 공약 제시</td>
-                <td className="p-3.5 font-black text-emerald-700">핵심 목적</td>
-                <td className="p-3.5 text-slate-500">구성원의 특수 이익이 중심</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">정부 감시 및 견제</td>
-                <td className="p-3.5">O (특히 야당 중심)</td>
-                <td className="p-3.5 font-black text-emerald-700">O (주요 활동)</td>
-                <td className="p-3.5">가능 (관련 정책 분야)</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="p-3.5 font-bold bg-slate-50/50">비영리·자발적 시민 조직</td>
-                <td className="p-3.5 text-slate-500">고유 특징 아님</td>
-                <td className="p-3.5 font-black text-emerald-700">핵심 특징</td>
-                <td className="p-3.5 text-slate-500">고유 특징 아님</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Key takeaway equation */}
-        <div className="mt-4 p-4 rounded-2xl bg-slate-900 text-white text-center font-black text-xs sm:text-sm shadow-md">
-          💡 핵심 공식: “활동 방식만 보지 말고, ‘조직의 궁극적 목적’을 확인하라!”
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* 5. 시험 함정 CHECK (Q1 ~ Q7)                                  */}
-      {/* ============================================================ */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-black">
-            TRAP CHECK
-          </span>
-          <h3 className="text-base sm:text-lg font-black text-slate-900">
-            시험 함정 CHECK (Q1 ~ Q7)
-          </h3>
-        </div>
-        <p className="text-xs text-slate-500 mb-4">
-          학생들이 시험에서 가장 많이 헷갈려 하는 함정 선지들을 직접 풀어보세요:
-        </p>
 
         <div className="space-y-4">
-          {EXAM_TRAP_QUESTIONS.map((q, idx) => {
-            const isAnswered = !!trapSubmitted[q.id];
-            const currentSelected = trapAnswers[q.id];
+          {EXAM_TRAP_QUESTIONS.map((trap, idx) => {
+            const isAnswered = !!trapSubmitted[trap.id];
+            const userChoice = trapAnswers[trap.id];
+            const correctOpt = trap.options.find((o) => o.isCorrect);
+            const isCorrect = userChoice === correctOpt?.id;
 
             return (
-              <div key={q.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <h4 className="text-xs sm:text-sm font-black text-slate-900 leading-snug">
-                    {q.question}
-                  </h4>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono font-bold">
-                    Q{idx + 1}
-                  </span>
+              <div
+                key={trap.id}
+                className={`p-5 rounded-3xl border transition-all ${
+                  isAnswered
+                    ? isCorrect
+                      ? 'border-emerald-300 bg-emerald-50/40'
+                      : 'border-rose-300 bg-rose-50/40'
+                    : 'border-stone-200 bg-white shadow-xs'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="text-xs font-mono font-bold text-stone-600">
+                    TRAP 0{idx + 1}
+                  </div>
+                  {isAnswered && (
+                    <span
+                      className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                        isCorrect
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {isCorrect ? '정답 ✓' : '함정에 걸림! ⚠️'}
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {q.options.map((opt) => {
-                    const isPicked = currentSelected === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => handleAnswerTrap(q.id, opt.id)}
-                        disabled={isAnswered}
-                        className={`p-3 rounded-xl text-xs font-bold text-left border transition ${
-                          isPicked
-                            ? opt.isCorrect
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                              : 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                            : isAnswered && opt.isCorrect
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        {opt.text}
-                      </button>
-                    );
-                  })}
+                <h4 className="text-sm sm:text-base font-black text-stone-900 leading-snug">
+                  {trap.question}
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                  {trap.options.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleAnswerTrap(trap.id, opt.id)}
+                      className={`p-3 rounded-2xl text-xs font-bold text-left border transition ${
+                        userChoice === opt.id
+                          ? opt.isCorrect
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-rose-600 text-white border-rose-600'
+                          : 'bg-stone-50/80 hover:bg-stone-100 border-stone-200 text-stone-800'
+                      }`}
+                    >
+                      {opt.text}
+                    </button>
+                  ))}
                 </div>
 
                 {isAnswered && (
-                  <div className="mt-2.5 p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 leading-relaxed animate-fadeIn">
-                    <span className="font-black text-slate-900">해설: </span>
-                    {q.explanation}
+                  <div className="mt-3 p-3 rounded-2xl bg-white/80 border border-stone-200 text-xs text-stone-700 leading-relaxed animate-fadeIn">
+                    <span className="font-black text-blue-700">[해설]: </span>
+                    {trap.explanation}
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* ============================================================ */}
-      {/* 6. FINAL 조직 판별 (가상 조직 6개 - 단순 3개 + 헷갈리는 3개)   */}
+      {/* 4. FINAL MYSTERY DETECTOR: 6대 실제 조직 판별관               */}
       {/* ============================================================ */}
-      <div className="rounded-3xl border-2 border-indigo-500 bg-white p-6 shadow-md">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-black flex items-center gap-1 shadow-xs">
-              <Search className="w-3.5 h-3.5" />
-              <span>FINAL DRILL</span>
-            </span>
-            <h3 className="text-base sm:text-lg font-black text-slate-900">
-              실전 조직 판별관 (6개 가상 조직)
-            </h3>
-          </div>
-          <span className="text-xs font-mono font-bold text-indigo-600">
-            사례 {currentCaseIdx + 1} / {MYSTERY_CASES.length}
+      <section className="space-y-6 max-w-3xl mx-auto">
+        <div className="text-center space-y-1">
+          <span className="text-[11px] font-mono tracking-widest text-stone-600 uppercase font-semibold">
+            MYSTERY ORGANIZATIONS
           </span>
+          <h3 className="text-2xl font-black text-stone-900 tracking-tight">
+            조직 판별 수사관 🕵️
+          </h3>
+          <p className="text-xs text-stone-700">
+            사례 카드를 읽고 3대 집단 중 어디에 해당하는지 단서를 찾아 판별하세요:
+          </p>
         </div>
 
-        {/* Case Card */}
-        <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-black text-slate-900">
-              {currentCase.title}
-            </span>
-            <span
-              className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
-                currentCase.difficulty === 'simple'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
-              }`}
-            >
-              {currentCase.difficulty === 'simple' ? '기본 사례' : '헷갈리는 심화 사례'}
-            </span>
+        {/* Case Navigation Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none justify-center">
+          {MYSTERY_CASES.map((c, idx) => {
+            const isDone = caseAnswers[c.id]?.isSubmitted;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setCurrentCaseIdx(idx)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1 ${
+                  currentCaseIdx === idx
+                    ? 'bg-stone-900 text-white'
+                    : isDone
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                }`}
+              >
+                <span>CASE {idx + 1}</span>
+                {isDone && <span>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Current Mystery Case Card */}
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/80 shadow-sm space-y-4">
+          <div className="flex items-center justify-between text-xs font-mono text-stone-500">
+            <span className="font-bold text-stone-900">{currentCase.title}</span>
+            <span className="text-stone-400">수사 기록</span>
           </div>
 
-          <p className="text-xs sm:text-sm text-slate-800 leading-relaxed font-medium">
-            {currentCase.description}
-          </p>
+          <p className="text-xs text-stone-600">{currentCase.description}</p>
 
-          <div className="p-3.5 rounded-2xl bg-white border border-slate-200 text-xs text-indigo-900 font-mono italic shadow-2xs">
+          <h4 className="text-base sm:text-lg font-black text-stone-900 leading-snug">
             {currentCase.feedSnippet}
-          </div>
+          </h4>
 
-          {/* Question 1: Select Organization */}
-          <div className="pt-2">
-            <p className="text-xs font-bold text-slate-900 mb-2">
-              1단계: 이 단체는 어떤 집단일까요?
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => selectOrgForCase('party')}
-                disabled={caseState.isSubmitted}
-                className={`py-3 px-3 rounded-2xl border text-xs font-black transition flex items-center justify-center gap-1 ${
-                  caseState.selectedOrg === 'party'
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>🟦</span>
-                <span>정당</span>
-              </button>
-
-              <button
-                onClick={() => selectOrgForCase('civic')}
-                disabled={caseState.isSubmitted}
-                className={`py-3 px-3 rounded-2xl border text-xs font-black transition flex items-center justify-center gap-1 ${
-                  caseState.selectedOrg === 'civic'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md scale-[1.02]'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>🟩</span>
-                <span>시민단체</span>
-              </button>
-
-              <button
-                onClick={() => selectOrgForCase('interest')}
-                disabled={caseState.isSubmitted}
-                className={`py-3 px-3 rounded-2xl border text-xs font-black transition flex items-center justify-center gap-1 ${
-                  caseState.selectedOrg === 'interest'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-md scale-[1.02]'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>🟧</span>
-                <span>이익집단</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Question 2: Decisive Clue Selection */}
-          <div className="pt-2">
-            <p className="text-xs font-bold text-slate-900 mb-2">
-              2단계: 어떤 결정적인 단서로 판단했나요? (복수 선택)
-            </p>
+          {/* Clues */}
+          <div className="space-y-2 pt-2">
+            <span className="text-xs font-bold text-stone-500">핵심 단서 (탭하여 확인):</span>
             <div className="flex flex-wrap gap-2">
-              {[
-                '공직 선거 후보자 공천',
-                '정권 획득',
-                '공익 실현',
-                '구성원의 특수 이익',
-                '정치사회화',
-                '여론 형성',
-                '정책 결정에 영향',
-              ].map((clue) => {
-                const isSelected = caseState.selectedClues.includes(clue);
-                return (
-                  <button
-                    key={clue}
-                    onClick={() => toggleClue(clue)}
-                    disabled={caseState.isSubmitted}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition ${
-                      isSelected
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    {clue}
-                  </button>
-                );
-              })}
+              {currentCase.decisiveClues.map((clue, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => toggleClue(clue)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+                    caseState.selectedClues.includes(clue)
+                      ? 'bg-blue-50 border-blue-300 text-blue-800 font-black'
+                      : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                  }`}
+                >
+                  🔍 {clue}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Submit or Result */}
-          {!caseState.isSubmitted ? (
-            <div className="pt-3 flex justify-end">
-              <button
-                onClick={submitCaseAnswer}
-                disabled={!caseState.selectedOrg || caseState.selectedClues.length === 0}
-                className="px-6 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs sm:text-sm disabled:opacity-40 transition shadow-md shadow-indigo-500/20"
-              >
-                판별 결과 제출하기
-              </button>
+          {/* Choice Org */}
+          <div className="pt-3 border-t border-stone-100">
+            <span className="text-xs font-bold text-stone-700 block mb-2">
+              이 조직의 정체는 무엇일까요?
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { type: 'party' as OrgType, label: '🔵 정당' },
+                { type: 'civic' as OrgType, label: '🟩 시민단체' },
+                { type: 'interest' as OrgType, label: '🟧 이익집단' },
+              ].map((item) => (
+                <button
+                  key={item.type}
+                  onClick={() => selectOrgForCase(item.type)}
+                  disabled={caseState.isSubmitted}
+                  className={`p-3 rounded-2xl text-xs font-black border transition ${
+                    caseState.selectedOrg === item.type
+                      ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                      : 'bg-stone-50 border-stone-200 text-stone-700 hover:bg-stone-100'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
+          </div>
+
+          {/* Submit */}
+          {!caseState.isSubmitted ? (
+            <button
+              onClick={submitCase}
+              disabled={!caseState.selectedOrg}
+              className="w-full py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-black transition disabled:opacity-40 shadow-sm"
+            >
+              판별 결과 제출하기
+            </button>
           ) : (
-            <div className="pt-3 space-y-3 animate-fadeIn">
-              <div
-                className={`p-4 rounded-2xl border text-xs sm:text-sm ${
-                  caseState.selectedOrg === currentCase.correctType
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
-                    : 'bg-rose-50 border-rose-300 text-rose-950'
-                }`}
-              >
-                <div className="font-black mb-1">
-                  {caseState.selectedOrg === currentCase.correctType
-                    ? '🎉 정답입니다!'
-                    : '❌ 오답입니다!'}
-                </div>
-                <p className="leading-relaxed">{currentCase.explanation}</p>
+            <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 text-xs text-stone-800 leading-relaxed space-y-1 animate-fadeIn">
+              <div className="font-black text-blue-900 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                <span>
+                  정답:{' '}
+                  {currentCase.correctType === 'party'
+                    ? '정당'
+                    : currentCase.correctType === 'civic'
+                    ? '시민단체'
+                    : '이익집단'}
+                </span>
               </div>
-
-              {/* Clue Warning Check */}
-              {(() => {
-                const onlyCommon =
-                  caseState.selectedClues.length > 0 &&
-                  caseState.selectedClues.every((c) =>
-                    ['정치사회화', '여론 형성', '정책 결정에 영향'].includes(c)
-                  );
-
-                if (onlyCommon) {
-                  return (
-                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-xs text-amber-950 font-semibold flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <p>
-                        ⚠️ [단서 주의] 선택하신 “정치사회화·여론 형성·정책 영향”은 세 집단 모두가 공통으로 수행할 수 있는 특징입니다!
-                        세 집단을 구별할 때는 반드시 조직의 궁극적 ‘목적(정권획득 vs 공익 vs 특수이익)’을 근거로 삼아야 합니다.
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-              {/* Next Case Button */}
-              <div className="flex justify-end gap-2 pt-2">
-                {currentCaseIdx < MYSTERY_CASES.length - 1 ? (
-                  <button
-                    onClick={() => setCurrentCaseIdx(currentCaseIdx + 1)}
-                    className="px-5 py-2.5 rounded-full bg-slate-900 text-white text-xs sm:text-sm font-extrabold hover:bg-slate-800 transition"
-                  >
-                    다음 판별 사례 풀기 ({currentCaseIdx + 2} / {MYSTERY_CASES.length})
-                  </button>
-                ) : (
-                  <button
-                    onClick={onNext}
-                    className="px-7 py-3 rounded-full bg-blue-600 text-white text-xs sm:text-sm font-extrabold hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/25"
-                  >
-                    <span>6개 사례 모두 판별 완료! → PART 06: 오늘의 참여 알림 탐구하기</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <p className="font-medium text-stone-700">{currentCase.explanation}</p>
             </div>
           )}
         </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 5. NEXT PART BUTTON                                          */}
+      {/* ============================================================ */}
+      <div className="pt-6 flex justify-center">
+        <button
+          onClick={onNext}
+          className="px-8 py-3.5 rounded-full bg-stone-900 hover:bg-blue-600 text-white font-extrabold text-sm shadow-xl shadow-stone-900/20 transition-all flex items-center gap-2 group"
+        >
+          <span>PART 06: 오늘의 참여 알림 (공청회·간담회·자원봉사·입법)</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </button>
       </div>
     </div>
   );

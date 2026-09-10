@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Smartphone,
   FileText,
-  MessageSquareQuote,
   Send,
   Bell,
   Users,
@@ -58,43 +57,41 @@ export const Part2IndividualAction: React.FC<Part2Props> = ({ onComplete, onNext
 
   const handleSelectAction = (id: string) => {
     setSelectedAction(id);
-    // After selecting an action, trigger the 1,284 people notification
     setTimeout(() => {
       setShowCollectiveNotice(true);
       onComplete();
-    }, 600);
+      confetti({ particleCount: 30, spread: 50 });
+    }, 500);
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-12 pb-16">
       {/* 08:20 Crosswalk Situation Card */}
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm overflow-hidden relative">
-        <div className="flex items-center justify-between text-xs text-slate-500 font-mono mb-3">
-          <span className="px-2 py-0.5 rounded-full bg-slate-100 font-semibold text-slate-700">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between text-xs font-mono text-stone-600">
+          <span className="px-3 py-1 rounded-full bg-stone-100 font-bold text-stone-800">
             08:20 AM · 학교 앞 횡단보도
           </span>
-          <span className="text-blue-600 font-medium">실시간 등굣길 상황</span>
+          <span className="text-blue-600 font-bold">실시간 등굣길 상황</span>
         </div>
 
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl flex-shrink-0 shadow-sm shadow-amber-200">
-            🚸
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 leading-snug">
-              “신호가 바뀌기 전에 뛰어야 해!”
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1.5 leading-relaxed">
-              등교 시간마다 수많은 학생들이 빨간 불로 바뀌기 전에 불안하게 뛰어 횡단보도를 건넙니다.
-              보행 신호 시간이 너무 짧다는 의견이 학부모와 학생들 사이에서 빗발치고 있습니다.
-            </p>
-          </div>
+        {/* Big Typography Question */}
+        <div className="space-y-3">
+          <span className="text-4xl">🚸</span>
+          <h2 className="text-3xl sm:text-4xl font-black text-stone-900 leading-tight tracking-tight">
+            “신호가 바뀌기 전에<br />
+            뛰어야 해!”
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-700 leading-relaxed max-w-xl">
+            등교 시간마다 수많은 학생들이 빨간 불로 바뀌기 전에 불안하게 뛰어 횡단보도를 건넙니다.
+            보행 신호 시간이 너무 짧다는 의견이 학생과 학부모들 사이에서 빗발치고 있습니다.
+          </p>
         </div>
 
-        <div className="mt-5 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-          <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-1.5">
-            <span>💡</span>
-            <span>“개인인 내가 할 수 있는 참여는 무엇일까?”</span>
+        {/* Action Choice Feed */}
+        <div className="pt-4 space-y-3">
+          <h3 className="text-sm font-black text-stone-900">
+            💡 “개인인 내가 당장 실천할 수 있는 참여 방식은?”
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -104,23 +101,23 @@ export const Part2IndividualAction: React.FC<Part2Props> = ({ onComplete, onNext
                 <button
                   key={act.id}
                   onClick={() => handleSelectAction(act.id)}
-                  className={`p-4 rounded-xl text-left border transition-all relative ${
+                  className={`p-5 rounded-3xl text-left border transition-all ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-50/80 ring-2 ring-blue-300 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
+                      ? 'border-blue-600 bg-blue-50/70 shadow-md ring-2 ring-blue-300'
+                      : 'border-stone-200/80 bg-white hover:border-stone-400 shadow-2xs'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xl">{act.icon}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{act.icon}</span>
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-600 font-bold font-mono">
                       {act.appMock}
                     </span>
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">{act.title}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">{act.subtitle}</p>
+                  <h4 className="text-sm font-black text-stone-900">{act.title}</h4>
+                  <p className="text-xs text-stone-600 mt-1 leading-snug">{act.subtitle}</p>
 
                   {isSelected && (
-                    <div className="mt-2.5 pt-2 border-t border-blue-200 text-xs text-blue-900 bg-blue-100/50 p-2 rounded-lg font-medium">
+                    <div className="mt-3 p-3 rounded-2xl bg-blue-100/70 text-xs text-blue-950 font-semibold animate-fadeIn leading-relaxed">
                       {act.detail}
                     </div>
                   )}
@@ -131,68 +128,66 @@ export const Part2IndividualAction: React.FC<Part2Props> = ({ onComplete, onNext
         </div>
       </div>
 
-      {/* Concept Discovery: Individual Citizen Participation */}
+      {/* Concept Discovery */}
       {selectedAction && (
-        <div className="space-y-6 animate-fadeIn">
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-bold text-blue-700 mb-1">
-              <span>개념 발견</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1.5">
+        <div className="space-y-8 animate-fadeIn">
+          <div className="p-6 rounded-3xl bg-white border border-stone-200/80 shadow-sm space-y-2">
+            <span className="text-[11px] font-mono text-blue-600 font-bold uppercase">
+              KEY CONCEPT 02
+            </span>
+            <h3 className="text-xl font-black text-stone-900">
               개인적 시민 참여 (Individual Citizen Participation)
             </h3>
-            <p className="text-sm text-slate-700 leading-relaxed">
+            <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
               시민이 <strong>개인의 자격</strong>으로 자신의 의견이나 요구를 정치·사회 과정에 직접 표현하는 참여 형태입니다.
-              (민원 제기, 청원, 1인 의견 제출, 담당자 면담 요청 등)
+              (안전신문고 민원 제기, 청원, 1인 의견 제출, 공공기관 면담 요청 등)
             </p>
           </div>
 
           {/* Sudden Notification: 1,284 other citizens experiencing the same issue */}
           {showCollectiveNotice && (
-            <div className="rounded-3xl border border-indigo-200 bg-gradient-to-b from-indigo-900 via-indigo-950 to-slate-950 text-white p-6 shadow-xl relative overflow-hidden animate-fadeIn">
-              <div className="flex items-center justify-between text-xs text-indigo-300 mb-4 font-mono">
-                <span className="flex items-center gap-1.5 font-sans font-bold text-amber-400">
+            <div className="rounded-[2.5rem] bg-gradient-to-br from-stone-900 via-indigo-950 to-stone-900 text-white p-7 sm:p-9 shadow-xl space-y-6 animate-fadeIn">
+              <div className="flex items-center justify-between text-xs text-indigo-300 font-mono">
+                <span className="flex items-center gap-1.5 font-sans font-bold text-amber-300">
                   <Bell className="w-4 h-4 animate-bounce" />
-                  긴급 실시간 네트워크 알림
+                  실시간 네트워크 알림
                 </span>
                 <span>방금 도착</span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center font-bold text-lg flex-shrink-0">
-                    <Users className="w-5 h-5" />
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/10 border border-white/15">
+                <div className="w-11 h-11 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-black text-xl flex-shrink-0">
+                  👥
+                </div>
+                <div>
+                  <div className="text-base font-black text-white">
+                    같은 불편을 겪는 시민 1,284명이 모였습니다!
                   </div>
-                  <div>
-                    <div className="text-sm font-bold text-white">
-                      🔔 같은 문제를 겪고 있는 시민 1,284명이 있습니다!
-                    </div>
-                    <p className="text-xs text-indigo-200 mt-1">
-                      “나 혼자 민원을 낼 수도 있지만, 같은 뜻을 가진 시민들이 지속적으로 힘을 합쳐 움직인다면?”
-                    </p>
-                  </div>
+                  <p className="text-xs text-stone-300 mt-1 leading-relaxed">
+                    “나 혼자 민원을 낼 수도 있지만, 같은 뜻을 가진 시민들이 지속적으로 힘을 합쳐 움직인다면 어떻게 될까요?”
+                  </p>
                 </div>
               </div>
 
-              <div className="text-center py-2">
-                <p className="text-xs uppercase tracking-wider text-indigo-300 font-semibold mb-1">
-                  Next Step
-                </p>
-                <h4 className="text-xl font-bold text-white">
+              <div className="text-center py-2 space-y-2">
+                <span className="text-[11px] font-mono tracking-widest text-indigo-300 uppercase font-semibold">
+                  NEXT DISCOVERY
+                </span>
+                <h4 className="text-2xl sm:text-3xl font-black text-white">
                   “혼자가 아니라 함께 움직인다면?”
                 </h4>
-                <div className="inline-block mt-3 px-4 py-1.5 rounded-full bg-blue-500/30 border border-blue-400 text-blue-200 text-sm font-bold">
-                  ⬇ 집단적 시민 참여 (Collective Citizen Participation)
+                <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-400/30 text-xs font-black">
+                  집단적 시민 참여 (Collective Citizen Participation)
                 </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/10 flex justify-end">
+              <div className="pt-2 flex justify-end">
                 <button
                   onClick={onNext}
-                  className="px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm flex items-center gap-2 shadow-lg transition hover:gap-3"
+                  className="px-7 py-3 rounded-full bg-white hover:bg-stone-100 text-stone-900 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all group"
                 >
-                  <span>PART 03: 혼자보다 함께 탐구하기</span>
-                  <ArrowRight className="w-4 h-4 text-blue-600" />
+                  <span>PART 03: 혼자보다 함께 (집단적 참여 탐구)</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </div>
