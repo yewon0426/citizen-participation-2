@@ -1,0 +1,6 @@
+{
+  "name": "오늘도 시민입니다",
+  "description": "고등학교 1학년 통합사회2 생활밀착형 시민 참여 인터랙티브 시뮬레이션",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
